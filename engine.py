@@ -1,20 +1,20 @@
 import numpy as np
 
 
-class IPD():
+class RMG():
     """
-    A two-agent environment for the Iterated Prisoner's Dilemma.
-    Possible actions for each agent are (C)ooperate and (D)efect.
+    A two-agent environment for a repeated matrix (symmetric) game.
+    Possible actions for each agent are (C)ooperate (0) and (D)efect (1).
     """
     # Possible actions
     NUM_AGENTS = 2
     NUM_ACTIONS = 2
     NUM_STATES = 5
 
-    def __init__(self, max_steps, batch_size=1):
+    def __init__(self, max_steps, payouts, batch_size=1):
         self.max_steps = max_steps
         self.batch_size = batch_size
-        self.payout_mat = np.array([[-1., 0.], [-3., -2.]])
+        self.payout_mat = payouts
         self.available_actions = [
             np.ones((batch_size, self.NUM_ACTIONS), dtype=int)
             for _ in range(self.NUM_AGENTS)
@@ -58,7 +58,10 @@ class IPD():
 batch_size = 1
 max_steps = 100
 
-env = IPD(max_steps=max_steps, batch_size=batch_size)
+# Reward matrix for the Iterated Prisoner's Dilemma
+ipd_rewards = np.array([[-1., 0.], [-3., -2.]])
+
+env = RMG(max_steps=max_steps, payouts=ipd_rewards, batch_size=batch_size)
 env.reset()
 
 # Both agents defect
@@ -75,7 +78,7 @@ print(s,r,d)
 batch_size = 2
 max_steps = 100
 
-env = IPD(max_steps=max_steps, batch_size=batch_size)
+env = RMG(max_steps=max_steps, payouts=ipd_rewards, batch_size=batch_size)
 env.reset()
 
 # Both agents defect in one simulation but in the other both cooperate
