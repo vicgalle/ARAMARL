@@ -1,3 +1,7 @@
+"""
+Some tests and usage examples for the agent module
+"""
+
 import numpy as np
 
 from agent import DummyAgent, RandomAgent

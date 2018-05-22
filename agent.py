@@ -1,3 +1,9 @@
+"""
+This module implements several agents. An agent is characterized by two methods:
+ * act : implements the policy, i.e., it returns agent's decisions to interact in a MDP or Markov Game.
+ * update : the learning mechanism of the agent. 
+"""
+
 import numpy as np
 from numpy.random import choice
 
@@ -14,7 +20,7 @@ class Agent():
 
     def act(self, obs):
         """
-        This implementes the policy, \pi(s) -> action.
+        This implements the policy, \pi : S -> A.
         obs is the observed state s
         """
         raise NotImplementedError()

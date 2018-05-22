@@ -1,3 +1,11 @@
+"""
+This module implements several environments, i.e., the simulators in which agents will interact and learn.
+Any environment is characterized by the following two methods:
+ * step : receives the actions taken by the agents, and returns the new state of the simulator and the rewards 
+ perceived by each agent, amongst other things.
+ * reset : sets the simulator at the initial state.
+"""
+
 import numpy as np
 
 
@@ -5,11 +13,13 @@ class RMG():
     """
     A two-agent environment for a repeated matrix (symmetric) game.
     Possible actions for each agent are (C)ooperate (0) and (D)efect (1).
+    The state is s_t = (a_{t-1}, b_{t-1}) with a_{t-1} and b_{t-1} the actions of the two players in the last turn,
+    plus an initial state s_0.
     """
     # Possible actions
     NUM_AGENTS = 2
     NUM_ACTIONS = 2
-    NUM_STATES = 5
+    NUM_STATES = NUM_AGENTS*NUM_ACTIONS + 1   # we add the initial state.
 
     def __init__(self, max_steps, payouts, batch_size=1):
         self.max_steps = max_steps

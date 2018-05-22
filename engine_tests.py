@@ -1,3 +1,7 @@
+"""
+Some tests and usage examples for the engine module
+"""
+
 import numpy as np
 
 from engine import RMG
