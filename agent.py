@@ -92,4 +92,5 @@ class IndQLearningAgent(Agent):
         """The vanilla Q-learning update rule"""
         a0, _ = actions
         r0, _ = rewards
+
         self.Q[obs, a0] = (1 - self.alpha)*self.Q[obs, a0] + self.alpha*(r0 + self.gamma*np.max(self.Q[new_obs, :]))
