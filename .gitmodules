@@ -1,0 +1,3 @@
+[submodule "ai-safety-gridworlds"]
+	path = ai-safety-gridworlds
+	url = https://github.com/vicgalle/ai-safety-gridworlds.git
