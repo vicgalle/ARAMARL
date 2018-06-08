@@ -132,3 +132,51 @@ class FPLearningAgent(Agent):
 
         aux = np.max( np.dot( self.Q[new_obs], self.Dir/np.sum(self.Dir) ) )
         self.Q[obs, a0, a1] = (1 - self.alpha)*self.Q[obs, a0, a1] + self.alpha*(r0 + self.gamma*aux)
+        
+class Mem1FPLearningAgent(Agent):
+    """
+    Extension of the FPLearningAgent to the case of having memory 1
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alpha = learning_rate
+        self.epsilon = epsilon
+        self.gamma = gamma
+        self.enemy_action_space = enemy_action_space
+        # This is the Q-function Q(s, a, b)
+        self.Q = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+        # Parameters of the Dirichlet distribution used to model the other agent, conditioned to the previous action
+        # Initialized using a uniform prior
+        self.Dir = np.ones( [len(self.action_space),len(self.enemy_action_space),len(self.enemy_action_space)] )
+
+    def act(self, past_actions = None, obs=None):
+        """An epsilon-greedy policy"""
+        if np.random.rand() < self.epsilon:
+            return choice(self.action_space)
+        else:
+            if not past_actions:
+                unif = np.ones(len(self.action_space))
+                return self.action_space[ np.argmax( np.dot( self.Q[obs], unif/np.sum(unif) ) ) ]
+            else:
+                return self.action_space[ np.argmax( np.dot( self.Q[obs], self.Dir[past_actions]/np.sum(self.Dir[past_actions]) ) ) ]
+                
+                
+
+    def update(self, obs, actions, rewards, new_obs, past_actions = None):
+        """The vanilla Q-learning update rule"""
+        a0, a1 = actions
+        r0, _ = rewards
+        
+        if not past_actions:
+            unif = np.ones(len(self.action_space))
+            aux = np.max( np.dot( self.Q[new_obs], unif/np.sum(unif) ) ) 
+        else:
+            self.Dir[past_actions][a1] += 1 # Update beliefs about adversary
+            aux = np.max( np.dot( self.Q[new_obs], self.Dir[past_actions]/np.sum(self.Dir[past_actions]) ) ) 
+        
+        self.Q[obs, a0, a1] = (1 - self.alpha)*self.Q[obs, a0, a1] + self.alpha*(r0 + self.gamma*aux)
+            
+
