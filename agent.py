@@ -141,12 +141,12 @@ class TFT(Agent):
     def __init__(self, action_space):
         Agent.__init__(self, action_space)
 
-    def act(self, past_actions, obs=None):
+    def act(self, obs):
 
-        if past_actions[0] == None: #MAAAL esto lo interpreta como vacío si (0,0)!!!
+        if obs[0] == None: #MAAAL esto lo interpreta como vacío si (0,0)!!!
             return(self.action_space[0]) # First move is cooperate
         else:
-            return(past_actions[1]) # Copy opponent's previous action
+            return(obs[1]) # Copy opponent's previous action
 
 
 
@@ -166,34 +166,40 @@ class Mem1FPLearningAgent(Agent):
         self.gamma = gamma
         self.enemy_action_space = enemy_action_space
         # This is the Q-function Q(s, a, b)
-        self.Q = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+        self.Q = np.zeros( [len(self.action_space),len(self.enemy_action_space),
+            len(self.action_space), len(self.enemy_action_space)] )
         # Parameters of the Dirichlet distribution used to model the other agent, conditioned to the previous action
         # Initialized using a uniform prior
-        self.Dir = np.ones( [len(self.action_space),len(self.enemy_action_space),len(self.enemy_action_space)] )
+        self.Dir = np.ones( [len(self.action_space),
+            len(self.enemy_action_space),len(self.enemy_action_space)] )
 
-    def act(self, past_actions, obs=None):
+    def act(self, obs):
         """An epsilon-greedy policy"""
         if np.random.rand() < self.epsilon:
             return choice(self.action_space)
         else:
-            if past_actions[0] == None:
+            if obs[0] == None:
                 unif = np.ones(len(self.action_space))
-                return self.action_space[ np.argmax( np.dot( self.Q[obs], unif/np.sum(unif) ) ) ]
+                return self.action_space[ np.argmax( np.dot( self.Q[obs[0], obs[1],:,:],
+                    unif/np.sum(unif) ) ) ]
             else:
-                return self.action_space[ np.argmax( np.dot( self.Q[obs], self.Dir[past_actions]/np.sum(self.Dir[past_actions]) ) ) ]
+                return self.action_space[ np.argmax( np.dot( self.Q[obs[0], obs[1],:,:],
+                    self.Dir[obs[0], obs[1],:]/np.sum(self.Dir[obs[0], obs[1],:]) ) ) ]
 
 
 
-    def update(self, obs, actions, rewards, new_obs, past_actions):
+    def update(self, obs, actions, rewards, new_obs):
         """The vanilla Q-learning update rule"""
         a0, a1 = actions
         r0, _ = rewards
 
-        if past_actions[0] == None:
+        if obs[0] == None:
             unif = np.ones(len(self.action_space))
-            aux = np.max( np.dot( self.Q[new_obs], unif/np.sum(unif) ) )
+            aux = np.max( np.dot( self.Q[new_obs[0],new_obs[1],:,:], unif/np.sum(unif) ) )
         else:
-            self.Dir[past_actions][a1] += 1 # Update beliefs about adversary
-            aux = np.max( np.dot( self.Q[new_obs], self.Dir[past_actions]/np.sum(self.Dir[past_actions]) ) )
+            self.Dir[obs[0],obs[1],a1] += 1 # Update beliefs about adversary
+            aux = np.max( np.dot( self.Q[new_obs[0],new_obs[1],:,:],
+                self.Dir[new_obs[0],new_obs[1],:]/np.sum(self.Dir[new_obs[0],new_obs[1],:]) ) )
 
-        self.Q[obs, a0, a1] = (1 - self.alpha)*self.Q[obs, a0, a1] + self.alpha*(r0 + self.gamma*aux)
+        self.Q[obs[0], obs[1], a0, a1] = ( (1 - self.alpha)*self.Q[obs[0], obs[1], a0, a1] +
+            self.alpha*(r0 + self.gamma*aux) )
