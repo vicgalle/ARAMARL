@@ -63,5 +63,41 @@ class RMG():
         return observations, rewards, done, info
 
 
+class AdvRw():
+    """
+    A two-action stateless environment in which an adversary controls the reward
+    """
 
+    def __init__(self, mode='friend'):
+        self._mode = mode
+        # adversary estimation of our action
+        self._policy = np.asarray([0.5, 0.5])
+        self._learning_rate = 0.25
 
+    def reset(self):
+        self._policy = np.asarray([0.5, 0.5])
+        return
+
+    def step(self, action):
+
+        if self._mode == 'friend':
+            if np.argmax(self._policy) == action:
+                reward = +50
+            else:
+                reward = -50
+        elif self._mode == 'adversary':
+            if np.argmax(self._policy) == action:
+                reward = -50
+            else:
+                reward = +50
+
+        self._policy = (self._learning_rate * np.array([1.0-action, action])
+                        + (1.0-self._learning_rate) * self._policy)
+        self._policy /= np.sum(self._policy)
+
+        print('---')
+        print('r', reward)
+        print('p', self._policy)
+        print('---')
+
+        return None, (reward, None), True, None
