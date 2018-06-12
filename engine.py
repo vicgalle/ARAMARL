@@ -68,14 +68,15 @@ class AdvRw():
     A two-action stateless environment in which an adversary controls the reward
     """
 
-    def __init__(self, mode='friend'):
+    def __init__(self, mode='friend', p=0.5):
         self._mode = mode
         # adversary estimation of our action
         self._policy = np.asarray([0.5, 0.5])
         self._learning_rate = 0.25
+        self._p = p  # probability for the neutral environment
 
     def reset(self):
-        self._policy = np.asarray([0.5, 0.5])
+        # self._policy = np.asarray([0.5, 0.5])
         return
 
     def step(self, action):
@@ -90,6 +91,12 @@ class AdvRw():
                 reward = -50
             else:
                 reward = +50
+        elif self._mode == 'neutral':
+            box = np.random.rand() < self._p
+            if int(box) == action:
+                reward = +50
+            else:
+                reward = -50
 
         self._policy = (self._learning_rate * np.array([1.0-action, action])
                         + (1.0-self._learning_rate) * self._policy)
