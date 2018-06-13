@@ -4,7 +4,7 @@ Some tests and usage examples for the engine module
 
 import numpy as np
 
-from engine import RMG
+from engine import RMG, AdvRw
 
 # Now we perform some tests
 
@@ -38,3 +38,44 @@ env.reset()
 a = ([1,0], [1,0])
 s, r, d, _ = env.step(a)
 print(s,r,d)
+
+
+
+# AdvRW tests
+print('AdvRW tests')
+
+print('friend env')
+env = AdvRw()
+
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(1)
+env.step(1)
+env.step(1)
+env.step(1)
+
+
+print('adversary env')
+env = AdvRw('adversary')
+
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(0)
+env.step(1)
+env.step(1)
+env.step(1)
+env.step(1)
+
+
+
