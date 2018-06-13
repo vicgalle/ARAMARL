@@ -173,6 +173,65 @@ class FPQwForgetAgent(Agent):
         aux = np.max( np.dot( self.Q[new_obs], self.Dir/np.sum(self.Dir) ) )
         self.Q[obs, a0, a1] = (1 - self.alpha)*self.Q[obs, a0, a1] + self.alpha*(r0 + self.gamma*aux)
 
+class Level2QAgent(Agent):
+    """
+    A Q-learning agent that treats the other player as a level 1 agent.
+    She learns from other's actions, estimating their Q function.
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alpha = learning_rate
+        self.epsilon = epsilon
+        self.gamma = gamma
+        self.enemy_action_space = enemy_action_space
+
+        # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
+        self.QA = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+
+        # This is the Q-function Q_B(s, b, a) (i.e, the adversary Q-function, as a point estimate)
+        self.QB = np.zeros([self.n_states, len(self.enemy_action_space), len(self.action_space) ])
+
+        # Parameters of the Dirichlet distribution used to model the other agent's belief of our actions p_B(a)
+        # Initialized using a uniform prior
+        self.DirB = np.ones( len(self.action_space) )
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+
+        ## TODO
+        if np.random.rand() < self.epsilon:
+            return choice(self.action_space)
+        else:
+            return self.action_space[ np.argmax( np.dot( self.Q[obs], self.Dir/np.sum(self.Dir) ) ) ]
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a, b = actions
+        rA, rB = rewards
+
+        self.DirB[a] += 1 # Update beliefs about adversary's level 1 model
+
+        # Update beliefs about adversary's Q function
+        aux = np.max( np.dot( self.QB[new_obs], self.DirB/np.sum(self.DirB) ) )
+        self.QB[obs, b, a] = (1 - self.alpha)*self.QB[obs, b, a] + self.alpha*(rB + self.gamma*aux)
+
+        # We obtain opponent's next action using Q_B
+        b = self.enemy_action_space[ np.argmax( np.dot( self.QB[new_obs], self.DirB/np.sum(self.DirB) ) ) ]  # Check and add uncertainty!!
+
+        # Finally we update the supported agent's Q-function
+        self.QA[obs, a, b] = (1 - self.alpha)*self.QA[obs, a, b] + self.alpha*(rA + self.gamma*np.max(self.QA[new_obs, :, b]))
+
+
+
+
+
+
+
+
 class TFT(Agent):
     """
     An agent playing TFT
