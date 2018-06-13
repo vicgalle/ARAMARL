@@ -107,4 +107,4 @@ class AdvRw():
         print('p', self._policy)
         print('---')
 
-        return None, (reward, None), True, None
+        return None, (reward, -reward), True, None

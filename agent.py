@@ -133,6 +133,46 @@ class FPLearningAgent(Agent):
         aux = np.max( np.dot( self.Q[new_obs], self.Dir/np.sum(self.Dir) ) )
         self.Q[obs, a0, a1] = (1 - self.alpha)*self.Q[obs, a0, a1] + self.alpha*(r0 + self.gamma*aux)
 
+class FPQwForgetAgent(Agent):
+    """
+    A Q-learning agent that treats the other player as a level 0 agent.
+    She learns from other's actions in a bayesian way, plus a discount to ignore distant observations.
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma, forget=0.95):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alpha = learning_rate
+        self.epsilon = epsilon
+        self.gamma = gamma
+        self.enemy_action_space = enemy_action_space
+        # This is the Q-function Q(s, a, b)
+        self.Q = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+        # Parameters of the Dirichlet distribution used to model the other agent
+        # Initialized using a uniform prior
+        self.Dir = np.ones( len(self.enemy_action_space) )
+        self.forget = forget
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+        if np.random.rand() < self.epsilon:
+            return choice(self.action_space)
+        else:
+            return self.action_space[ np.argmax( np.dot( self.Q[obs], self.Dir/np.sum(self.Dir) ) ) ]
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a0, a1 = actions
+        r0, _ = rewards
+
+        self.Dir *= self.forget
+        self.Dir[a1] += 1 # Update beliefs about adversary
+
+        aux = np.max( np.dot( self.Q[new_obs], self.Dir/np.sum(self.Dir) ) )
+        self.Q[obs, a0, a1] = (1 - self.alpha)*self.Q[obs, a0, a1] + self.alpha*(r0 + self.gamma*aux)
+
 class TFT(Agent):
     """
     An agent playing TFT
