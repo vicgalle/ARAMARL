@@ -71,7 +71,7 @@ class IndQLearningAgent(Agent):
     Intended to use as a baseline
     """
 
-    def __init__(self, action_space, n_states, learning_rate, epsilon, gamma):
+    def __init__(self, action_space, n_states, learning_rate, epsilon, gamma, enemy_action_space=None):
         Agent.__init__(self, action_space)
 
         self.n_states = n_states
@@ -140,7 +140,7 @@ class FPQwForgetAgent(Agent):
     She represents Q-values in a tabular fashion, i.e., using a matrix Q.
     """
 
-    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma, forget=0.95):
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma, forget=0.8):
         Agent.__init__(self, action_space)
 
         self.n_states = n_states
@@ -184,9 +184,14 @@ class Level2QAgent(Agent):
         Agent.__init__(self, action_space)
 
         self.n_states = n_states
-        self.alpha = learning_rate
-        self.epsilon = epsilon
-        self.gamma = gamma
+        self.alphaA = learning_rate
+        self.alphaB = learning_rate
+        self.epsilonA = epsilon
+        self.epsilonB = self.epsilonA
+        self.gammaA = gamma
+        self.gammaB = self.gammaA
+        #self.gammaB = 0
+
         self.enemy_action_space = enemy_action_space
 
         # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
@@ -194,6 +199,7 @@ class Level2QAgent(Agent):
 
         # This is the Q-function Q_B(s, b, a) (i.e, the adversary Q-function, as a point estimate)
         self.QB = np.zeros([self.n_states, len(self.enemy_action_space), len(self.action_space) ])
+        #self.QB = np.zeros([self.n_states, len(self.enemy_action_space)])
 
         # Parameters of the Dirichlet distribution used to model the other agent's belief of our actions p_B(a)
         # Initialized using a uniform prior
@@ -202,28 +208,41 @@ class Level2QAgent(Agent):
     def act(self, obs=None):
         """An epsilon-greedy policy"""
 
-        ## TODO
-        if np.random.rand() < self.epsilon:
+        if np.random.rand() < self.epsilonA:
             return choice(self.action_space)
         else:
-            return self.action_space[ np.argmax( np.dot( self.Q[obs], self.Dir/np.sum(self.Dir) ) ) ]
+            # We obtain opponent's next action using Q_B
+            if np.random.rand() < self.epsilonB:
+                b = choice(self.action_space)
+            else:
+                b = self.enemy_action_space[ np.argmax( np.dot( self.QB[obs], self.DirB/np.sum(self.DirB) ) ) ]  # Check and add uncertainty!!
+                #b = self.action_space[np.argmax(self.QB[obs, :])]
+
+            # Add epsilon-greedyness
+            return self.action_space[ np.argmax( self.QA[obs, :, b ] ) ]
 
     def update(self, obs, actions, rewards, new_obs):
         """The vanilla Q-learning update rule"""
         a, b = actions
         rA, rB = rewards
 
+        #self.DirB *= 1
         self.DirB[a] += 1 # Update beliefs about adversary's level 1 model
 
         # Update beliefs about adversary's Q function
         aux = np.max( np.dot( self.QB[new_obs], self.DirB/np.sum(self.DirB) ) )
-        self.QB[obs, b, a] = (1 - self.alpha)*self.QB[obs, b, a] + self.alpha*(rB + self.gamma*aux)
+        self.QB[obs, b, a] = (1 - self.alphaB)*self.QB[obs, b, a] + self.alphaB*(rB + self.gammaB*aux)
+        #self.QB[obs, b] = (1 - self.alphaB)*self.QB[obs, b] + self.alphaB*(rB + self.gammaB*np.max(self.QB[new_obs, :]))
 
         # We obtain opponent's next action using Q_B
-        b = self.enemy_action_space[ np.argmax( np.dot( self.QB[new_obs], self.DirB/np.sum(self.DirB) ) ) ]  # Check and add uncertainty!!
-
+        if np.random.rand() < self.epsilonB:
+            bb = choice(self.action_space)
+        else:
+            bb = self.enemy_action_space[ np.argmax( np.dot( self.QB[new_obs], self.DirB/np.sum(self.DirB) ) ) ]  # Check and add uncertainty!!
+            #bb = self.action_space[np.argmax(self.QB[new_obs, :])]
+     
         # Finally we update the supported agent's Q-function
-        self.QA[obs, a, b] = (1 - self.alpha)*self.QA[obs, a, b] + self.alpha*(rA + self.gamma*np.max(self.QA[new_obs, :, b]))
+        self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
 
 
 
