@@ -102,9 +102,9 @@ class AdvRw():
                         + (1.0-self._learning_rate) * self._policy)
         self._policy /= np.sum(self._policy)
 
-        print('---')
-        print('r', reward)
-        print('p', self._policy)
-        print('---')
+        #print('---')
+        #print('r', reward)
+        #print('p', self._policy)
+        #print('---')
 
         return None, (reward, -reward), True, None
