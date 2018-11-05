@@ -95,6 +95,135 @@ class IndQLearningAgent(Agent):
 
         self.Q[obs, a0] = (1 - self.alpha)*self.Q[obs, a0] + self.alpha*(r0 + self.gamma*np.max(self.Q[new_obs, :]))
 
+class Exp3QLearningAgent(Agent):
+    """
+    A Q-learning agent that treats other players as part of the environment (independent Q-learning).
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    Intended to use as a baseline
+    """
+
+    def __init__(self, action_space, n_states, learning_rate, epsilon, gamma, enemy_action_space=None):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alpha = learning_rate
+        self.epsilon = epsilon
+        self.gamma = gamma
+        # This is the Q-function Q(s, a)
+        self.Q = np.zeros([self.n_states, len(self.action_space)])
+        self.S = np.zeros([self.n_states, len(self.action_space)])
+        self.p = np.ones([self.n_states, len(self.action_space)])/len(self.action_space)
+
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+        return choice(self.action_space, p=self.p[obs,:])
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a0, _ = actions
+        r0, _ = rewards
+
+        self.Q[obs, a0] = (1 - self.alpha)*self.Q[obs, a0] + self.alpha*(r0 + self.gamma*np.max(self.Q[new_obs, :]))
+        self.S[obs, a0] = self.S[obs, a0] + self.Q[obs, a0]/self.p[obs, a0]
+
+        K = len(self.action_space)
+
+        for i in self.action_space:
+            self.p[obs, i] = (1-self.epsilon)/( np.exp((self.S[obs, :] - self.S[obs, i])*self.epsilon/K).sum() ) + self.epsilon/K
+
+        
+
+class PHCLearningAgent(Agent):
+    """
+    A Q-learning agent that treats other players as part of the environment (independent Q-learning).
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    Intended to use as a baseline
+    """
+
+    def __init__(self, action_space, n_states, learning_rate, epsilon, gamma, delta, enemy_action_space=None):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alpha = learning_rate
+        self.epsilon = epsilon
+        self.gamma = gamma
+        self.delta = delta
+        # This is the Q-function Q(s, a)
+        self.Q = np.zeros([self.n_states, len(self.action_space)])
+        self.pi = 1/len(self.action_space)*np.ones([self.n_states, len(self.action_space)])
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+        #print(self.pi[obs,:])
+        #print(self.n_states)
+        return choice(self.action_space, p=self.pi[obs,:])
+        
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a0, _ = actions
+        r0, _ = rewards
+
+        self.Q[obs, a0] = (1 - self.alpha)*self.Q[obs, a0] + self.alpha*(r0 + self.gamma*np.max(self.Q[new_obs, :]))
+
+        a = self.action_space[np.argmax(self.Q[obs, :])]
+        self.pi[obs, :] -= self.delta*self.alpha / len(self.action_space)
+        self.pi[obs, a] += ( self.delta*self.alpha + self.delta*self.alpha / len(self.action_space))
+        self.pi[obs, :] = np.maximum(self.pi[obs, :], 0)
+        self.pi[obs, :] /= self.pi[obs,:].sum()
+
+
+class WoLFPHCLearningAgent(Agent):
+    """
+    A Q-learning agent that treats other players as part of the environment (independent Q-learning).
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    Intended to use as a baseline
+    """
+
+    def __init__(self, action_space, n_states, learning_rate, epsilon, gamma, delta_w, delta_l, enemy_action_space=None):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alpha = learning_rate
+        self.epsilon = epsilon
+        self.gamma = gamma
+        self.delta_w = delta_w
+        self.delta_l = delta_l
+        # This is the Q-function Q(s, a)
+        self.Q = np.zeros([self.n_states, len(self.action_space)])
+        self.pi = 1/len(self.action_space)*np.ones([self.n_states, len(self.action_space)])
+        self.pi_ = 1/len(self.action_space)*np.ones([self.n_states, len(self.action_space)])
+        self.C = np.zeros(self.n_states)
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+        #print(self.pi[obs,:])
+        #print(self.n_states)
+        return choice(self.action_space, p=self.pi[obs,:])
+        
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a0, _ = actions
+        r0, _ = rewards
+
+        self.Q[obs, a0] = (1 - self.alpha)*self.Q[obs, a0] + self.alpha*(r0 + self.gamma*np.max(self.Q[new_obs, :]))
+
+        self.C[obs] += 1
+        self.pi_[obs, :] += (self.pi[obs,:]-self.pi_[obs,:])/self.C[obs]
+        a = self.action_space[np.argmax(self.Q[obs, :])]
+
+        if np.dot(self.pi[obs, :], self.Q[obs,:]) > np.dot(self.pi_[obs, :], self.Q[obs,:]):
+            delta = self.delta_w
+        else:
+            delta = self.delta_l
+
+        self.pi[obs, :] -= delta*self.alpha / len(self.action_space)
+        self.pi[obs, a] += ( delta*self.alpha + delta*self.alpha / len(self.action_space))
+        self.pi[obs, :] = np.maximum(self.pi[obs, :], 0)
+        self.pi[obs, :] /= self.pi[obs,:].sum()
+
 class FPLearningAgent(Agent):
     """
     A Q-learning agent that treats the other player as a level 0 agent.
