@@ -108,3 +108,32 @@ class AdvRw():
         #print('---')
 
         return None, (reward, -reward), True, None
+
+class LaRelance():
+    """
+    La Relance betting game.
+    """
+
+    def __init__(self):
+        self._private_cards = np.random.rand(2)
+
+    def reset(self):
+        self._private_cards = np.random.rand(2)
+        return
+
+    def step(self, action):
+
+        a0, a1 = action
+
+        if a0 == 0: # Bart folds
+            r0 = -1
+        else: # Bart bets a0
+            if a1 == 0:  # Lisa folds
+                r0 = 1
+            else:       # Lisa calls
+                if self._private_cards[0] > self._private_cards[1]:
+                    r0 = 1 + a0
+                else:
+                    r0 = -(1+a0)
+
+        return None, (r0, -r0), True, None
