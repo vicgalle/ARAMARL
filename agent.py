@@ -132,7 +132,7 @@ class Exp3QLearningAgent(Agent):
         for i in self.action_space:
             self.p[obs, i] = (1-self.epsilon)/( np.exp((self.S[obs, :] - self.S[obs, i])*self.epsilon/K).sum() ) + self.epsilon/K
 
-        
+
 
 class PHCLearningAgent(Agent):
     """
@@ -158,7 +158,7 @@ class PHCLearningAgent(Agent):
         #print(self.pi[obs,:])
         #print(self.n_states)
         return choice(self.action_space, p=self.pi[obs,:])
-        
+
 
     def update(self, obs, actions, rewards, new_obs):
         """The vanilla Q-learning update rule"""
@@ -201,7 +201,7 @@ class WoLFPHCLearningAgent(Agent):
         #print(self.pi[obs,:])
         #print(self.n_states)
         return choice(self.action_space, p=self.pi[obs,:])
-        
+
 
     def update(self, obs, actions, rewards, new_obs):
         """The vanilla Q-learning update rule"""
@@ -369,14 +369,9 @@ class Level2QAgent(Agent):
         else:
             bb = self.enemy_action_space[ np.argmax( np.dot( self.QB[new_obs], self.DirB/np.sum(self.DirB) ) ) ]  # Check and add uncertainty!!
             #bb = self.action_space[np.argmax(self.QB[new_obs, :])]
-     
+
         # Finally we update the supported agent's Q-function
         self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
-
-
-
-
-
 
 
 
@@ -450,3 +445,34 @@ class Mem1FPLearningAgent(Agent):
 
         self.Q[obs[0], obs[1], a0, a1] = ( (1 - self.alpha)*self.Q[obs[0], obs[1], a0, a1] +
             self.alpha*(r0 + self.gamma*aux) )
+
+
+############################ KUHN POKER ########################################
+
+class kuhnAgent2(Agent):
+    """
+    Stationary second agent in kuhn poker game. His action is parametrized using
+    two parameters and depends on his card and the previous movement of his opponent.
+    Cards: J=0, Q=1, K=2.
+    Actions: pass=0, bet=1.
+    """
+
+    def __init__(self, action_space, zeta, eta):
+        Agent.__init__(self, action_space)
+
+        self.zeta = zeta
+        self.eta = eta
+
+    def act(self, card, enemy_action, obs=None):
+        if card == 2:
+            return 1
+        if card == 0:
+            if enemy_action == 0:
+                return 1 if np.random.rand() < self.zeta else  0
+            else:
+                return 0
+        else:
+            if enemy_action == 0:
+                return 0
+            else:
+                return 1 if np.random.rand() < self.eta else 0
