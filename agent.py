@@ -445,34 +445,30 @@ class Mem1FPLearningAgent(Agent):
 
         self.Q[obs[0], obs[1], a0, a1] = ( (1 - self.alpha)*self.Q[obs[0], obs[1], a0, a1] +
             self.alpha*(r0 + self.gamma*aux) )
-
-
-############################ KUHN POKER ########################################
-
-class kuhnAgent2(Agent):
+##
+## Agents for the friend or foe environment
+class ExpSmoother(Agent):
     """
-    Stationary second agent in kuhn poker game. His action is parametrized using
-    two parameters and depends on his card and the previous movement of his opponent.
-    Cards: J=0, Q=1, K=2.
-    Actions: pass=0, bet=1.
+    An agent predicting its opponent actions using an exponential smoother.
     """
 
-    def __init__(self, action_space, zeta, eta):
+    def __init__(self, action_space, enemy_action_space, learning_rate):
         Agent.__init__(self, action_space)
 
-        self.zeta = zeta
-        self.eta = eta
+        self.alpha = learning_rate
+        self.action_space = action_space
+        self.enemy_action_space = enemy_action_space
+        # Initial forecast
+        self.prob = np.ones( len(self.enemy_action_space) )*0.5
 
-    def act(self, card, enemy_action, obs=None):
-        if card == 2:
-            return 1
-        if card == 0:
-            if enemy_action == 0:
-                return 1 if np.random.rand() < self.zeta else  0
-            else:
-                return 0
-        else:
-            if enemy_action == 0:
-                return 0
-            else:
-                return 1 if np.random.rand() < self.eta else 0
+    def act(self, obs=None):
+        """Just chooses the less probable place"""
+        return self.action_space[np.argmin(self.prob)]
+
+
+    def update(self, obs, actions, rewards, new_obs):
+        """Update the exp smoother"""
+        a0, a1 = actions
+        OHE = np.array([[1,0],[0,1]])
+
+        self.prob = self.alpha*self.prob + (1-self.alpha)*OHE[a1] # Update beliefs about DM
