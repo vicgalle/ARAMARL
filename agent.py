@@ -530,17 +530,18 @@ class Level3QAgentMix(Agent):
         self.epsilonB = self.epsilonA
         self.gammaA = gamma
         self.gammaB = self.gammaA
+        self.prob_type = np.array([0.5, 0.5])
         #self.gammaB = 0
 
         self.action_space = action_space
         self.enemy_action_space = enemy_action_space
 
         ## Other agent
-        self.enemy = pLevel2QAgent(self.enemy_action_space, self.action_space,
-         self.n_states, self.alphaB, self.epsilonB, self.gammaB)
+        self.enemy = Level2QAgent(self.enemy_action_space, self.action_space,
+         self.n_states, self.alphaB, 0.0, self.gammaB)
 
         self.enemy2 = FPLearningAgent(self.enemy_action_space, self.action_space, self.n_states,
-            learning_rate=self.alphaB, epsilon=self.epsilonB, gamma=self.gammaB)
+            learning_rate=self.alphaB, epsilon=0.0, gamma=self.gammaB)
 
         # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
         self.QA1 = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
@@ -558,12 +559,29 @@ class Level3QAgentMix(Agent):
             # Add epsilon-greedyness
         res1 = self.action_space[ np.argmax( self.QA1[obs, :, b ] ) ]
         res2 = self.action_space[ np.argmax( self.QA2[obs, :, b2 ] ) ]
-        return choice(np.array([res1, res2]))
+        return choice( np.array([res1, res2]), p = self.prob_type )
 
     def update(self, obs, actions, rewards, new_obs):
         """The vanilla Q-learning update rule"""
         a, b = actions
         rA, rB = rewards
+        lr_prob = 0.4
+
+        ### Update p
+        if np.random.rand() < self.epsilonA:
+            return choice(self.action_space)
+        else:
+            b1 = self.enemy.act()
+            b2 = self.enemy2.act()
+
+        if b1 == b2:
+            pass
+        else:
+            print("hola")
+            if b == b1:
+                self.prob_type = lr_prob*self.prob_type + (1-lr_prob)*np.array([1,0])
+            else:
+                self.prob_type = lr_prob*self.prob_type + (1-lr_prob)*np.array([0,1])
 
         self.enemy.update( obs, [b,a], [rB, rA], new_obs )
         self.enemy2.update( obs, [b,a], [rB, rA], new_obs )
