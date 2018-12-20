@@ -538,14 +538,18 @@ class Level3QAgentMix(Agent):
 
         ## Other agent
         self.enemy = Level2QAgent(self.enemy_action_space, self.action_space,
-         self.n_states, self.alphaB, 0.0, self.gammaB)
+         self.n_states, self.alphaB, 0.1, self.gammaB)
 
         self.enemy2 = FPLearningAgent(self.enemy_action_space, self.action_space, self.n_states,
-            learning_rate=self.alphaB, epsilon=0.0, gamma=self.gammaB)
+            learning_rate=self.alphaB, epsilon=0.1, gamma=self.gammaB)
 
         # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
         self.QA1 = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
         self.QA2 = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+
+        # To store enemies actions
+        self.E1_action = 0
+        self.E2_action = 0
 
 
     def act(self, obs=None):
@@ -554,11 +558,11 @@ class Level3QAgentMix(Agent):
         if np.random.rand() < self.epsilonA:
             return choice(self.action_space)
         else:
-            b = self.enemy.act()
-            b2 = self.enemy2.act()
+            self.E1_action = self.enemy.act()
+            self.E2_action = self.enemy2.act()
             # Add epsilon-greedyness
-        res1 = self.action_space[ np.argmax( self.QA1[obs, :, b ] ) ]
-        res2 = self.action_space[ np.argmax( self.QA2[obs, :, b2 ] ) ]
+        res1 = self.action_space[ np.argmax( self.QA1[obs, :, self.E1_action ] ) ]
+        res2 = self.action_space[ np.argmax( self.QA2[obs, :, self.E2_action ] ) ]
         return choice( np.array([res1, res2]), p = self.prob_type )
 
     def update(self, obs, actions, rewards, new_obs):
@@ -568,17 +572,11 @@ class Level3QAgentMix(Agent):
         lr_prob = 0.4
 
         ### Update p
-        if np.random.rand() < self.epsilonA:
-            return choice(self.action_space)
-        else:
-            b1 = self.enemy.act()
-            b2 = self.enemy2.act()
 
-        if b1 == b2:
+        if self.E1_action == self.E2_action:
             pass
         else:
-            print("hola")
-            if b == b1:
+            if self.E1_action == b:
                 self.prob_type = lr_prob*self.prob_type + (1-lr_prob)*np.array([1,0])
             else:
                 self.prob_type = lr_prob*self.prob_type + (1-lr_prob)*np.array([0,1])
