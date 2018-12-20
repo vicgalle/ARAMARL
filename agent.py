@@ -445,8 +445,10 @@ class Mem1FPLearningAgent(Agent):
 
         self.Q[obs[0], obs[1], a0, a1] = ( (1 - self.alpha)*self.Q[obs[0], obs[1], a0, a1] +
             self.alpha*(r0 + self.gamma*aux) )
-##
+
+###############################################
 ## Agents for the friend or foe environment
+###############################################
 class ExpSmoother(Agent):
     """
     An agent predicting its opponent actions using an exponential smoother.
@@ -472,3 +474,112 @@ class ExpSmoother(Agent):
         OHE = np.array([[1,0],[0,1]])
 
         self.prob = self.alpha*self.prob + (1-self.alpha)*OHE[a1] # Update beliefs about DM
+
+##
+class pLevel2QAgent(Agent):
+    """
+    A Q-learning agent that treats the other player as a level 1 agent.
+    She learns from other's actions, estimating their Q function.
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alphaA = learning_rate
+        self.alphaB = learning_rate
+        self.epsilonA = epsilon
+        self.epsilonB = self.epsilonA
+        self.gammaA = gamma
+        self.gammaB = self.gammaA
+        #self.gammaB = 0
+
+        self.action_space = action_space
+        self.enemy_action_space = enemy_action_space
+
+        ## Other agent
+        self.enemy = FPLearningAgent(self.enemy_action_space, self.action_space, self.n_states,
+            learning_rate=self.alphaB, epsilon=self.epsilonB, gamma=self.gammaB)
+
+        # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
+        self.QA = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+
+        if np.random.rand() < self.epsilonA:
+            return choice(self.action_space)
+        else:
+            b = self.enemy.act()
+            # Add epsilon-greedyness
+            return self.action_space[ np.argmax( self.QA[obs, :, b ] ) ]
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a, b = actions
+        rA, rB = rewards
+
+        self.enemy.update(obs, [b,a], [rB, rA], new_obs )
+
+        # We obtain opponent's next action using Q_B
+        bb = self.enemy.act()
+
+        # Finally we update the supported agent's Q-function
+        self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
+
+
+##
+class Level3QAgent(Agent):
+    """
+    A Q-learning agent that treats the other player as a level 2 agent.
+    She learns from other's actions, estimating their Q function.
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alphaA = learning_rate
+        self.alphaB = learning_rate
+        self.epsilonA = epsilon
+        self.epsilonB = self.epsilonA
+        self.gammaA = gamma
+        self.gammaB = self.gammaA
+        #self.gammaB = 0
+
+        self.action_space = action_space
+        self.enemy_action_space = enemy_action_space
+
+        ## Other agent
+        self.enemy = pLevel2QAgent(self.enemy_action_space, self.action_space,
+         self.n_states, self.alphaB, self.epsilonB, self.gammaB)
+
+        # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
+        self.QA = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+
+        if np.random.rand() < self.epsilonA:
+            return choice(self.action_space)
+        else:
+            b = self.enemy.act()
+            # Add epsilon-greedyness
+            return self.action_space[ np.argmax( self.QA[obs, :, b ] ) ]
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a, b = actions
+        rA, rB = rewards
+
+        self.enemy.update(obs, [b,a], [rB, rA], new_obs )
+
+        # We obtain opponent's next action using Q_B
+        bb = self.enemy.act()
+
+        # Finally we update the supported agent's Q-function
+        self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
