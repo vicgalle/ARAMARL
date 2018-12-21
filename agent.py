@@ -513,10 +513,12 @@ class Level3QAgent(Agent):
         self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
 
 
-class Level3QAgentMix(Agent):
+class Level3QAgentMixExp(Agent):
     """
-    A Q-learning agent that treats the other player as a level 2 agent.
-    She learns from other's actions, estimating their Q function.
+    A Q-learning agent that treats the other player as a mixture of a
+    level 2 agent and a level 1 agent, with different probabilities, that
+    are updated dynamically using an exponential smoother.
+    She learns from others' actions, estimating their Q function.
     She represents Q-values in a tabular fashion, i.e., using a matrix Q.
     """
 
@@ -586,6 +588,89 @@ class Level3QAgentMix(Agent):
 
         # We obtain opponent's next action using Q_B
         bb = self.enemy.act()
+        bb2 = self.enemy2.act()
+
+        # Finally we update the supported agent's Q-function
+        self.QA1[obs, a, b] = (1 - self.alphaA)*self.QA1[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA1[new_obs, :, bb]))
+        self.QA2[obs, a, b] = (1 - self.alphaA)*self.QA2[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA2[new_obs, :, bb2]))
+
+class Level3QAgentMixDir(Agent):
+    """
+    A Q-learning agent that treats the other player as a mixture of a
+    level 2 agent and a level 1 agent, with different probabilities, that
+    are updated dynamically in a Bayesian way.
+    She learns from others' actions, estimating their Q function.
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma):
+        Agent.__init__(self, action_space)
+
+        self.n_states = n_states
+        self.alphaA = learning_rate
+        self.alphaB = learning_rate
+        self.epsilonA = epsilon
+        self.epsilonB = self.epsilonA
+        self.gammaA = gamma
+        self.gammaB = self.gammaA
+        #self.gammaB = 0
+
+        self.action_space = action_space
+        self.enemy_action_space = enemy_action_space
+
+        ## Other agent
+        self.enemy1 = Level2QAgent(self.enemy_action_space, self.action_space,
+         self.n_states, self.alphaB, 0.0, self.gammaB)
+
+        self.enemy2 = FPLearningAgent(self.enemy_action_space, self.action_space, self.n_states,
+            learning_rate=self.alphaB, epsilon=0.0, gamma=self.gammaB)
+
+        # This is the Q-function Q_A(s, a, b) (i.e, the supported DM Q-function)
+        self.QA1 = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+        self.QA2 = np.zeros([self.n_states, len(self.action_space), len(self.enemy_action_space)])
+
+        # To store enemies actions
+        self.E1_action = 0
+        self.E2_action = 0
+
+        # Probabilities of types
+        self.prob_type = np.array([1, 1]) #Dirichlet distribution
+
+
+    def act(self, obs=None):
+        """An epsilon-greedy policy"""
+
+        if np.random.rand() < self.epsilonA:
+            return choice(self.action_space)
+        else:
+            self.E1_action = self.enemy1.act()
+            self.E2_action = self.enemy2.act()
+            # Add epsilon-greedyness
+        res1 = self.action_space[ np.argmax( self.QA1[obs, :, self.E1_action ] ) ]
+        res2 = self.action_space[ np.argmax( self.QA2[obs, :, self.E2_action ] ) ]
+        return choice( np.array([res1, res2]), p = self.prob_type/(np.sum(self.prob_type)) )
+
+    def update(self, obs, actions, rewards, new_obs):
+        """The vanilla Q-learning update rule"""
+        a, b = actions
+        rA, rB = rewards
+        lr_prob = 0.4
+
+        ### Update Dirichlets  self.Dir[a1] += 1 # Update beliefs about adversary
+
+        if self.E1_action == self.E2_action:
+            pass
+        else:
+            if self.E1_action == b:
+                self.prob_type[0] += 1
+            else:
+                self.prob_type[1] += 1
+
+        self.enemy1.update( obs, [b,a], [rB, rA], new_obs )
+        self.enemy2.update( obs, [b,a], [rB, rA], new_obs )
+
+        # We obtain opponent's next action using Q_B
+        bb = self.enemy1.act()
         bb2 = self.enemy2.act()
 
         # Finally we update the supported agent's Q-function
