@@ -139,3 +139,86 @@ class AdvRw2():
 
         return observations, rewards, done
 #
+
+class AdvRwGridworld():
+    """
+    Friend or Foe modified to model adversary separately, with gridworld
+    """
+
+    def __init__(self, max_steps, batch_size=1):
+        self.H = 4
+        self.W = 3
+        self.world = np.array([self.H, self.W])  # The gridworld
+
+        self.targets = np.array([[0,0], [0,2]])  # Position of the targets
+        self.DM = np.array([3,1])  # Initial position of the DM
+
+
+        self.max_steps = max_steps
+        self.batch_size = batch_size
+        self.available_actions_DM = np.array([0,1,2,3])  # Up, right, down,left
+        self.available_actions_Adv = np.array([0,1])  # Select target 1 or 2.
+        self.step_count = 0
+
+    def reset(self):
+        self.step_count = 0
+        self.DM = np.array([3,1])
+        return
+
+    def _coord2int(self, pos):
+        return pos[0] + self.H*pos[1]
+
+    def step(self, action):
+        ac_DM, ac_Adv = action
+
+        self.step_count += 1
+
+        if ac_DM == 0: # Up
+            self.DM[0] = np.maximum(0, self.DM[0] - 1)
+        elif ac_DM == 1: # Right
+            self.DM[1] = np.minimum(self.W - 1, self.DM[1] + 1)
+        elif ac_DM == 2: # Down
+            self.DM[0] = np.minimum(self.H - 1, self.DM[0] + 1)
+        elif ac_DM == 3: # Left
+            self.DM[1] = np.maximum(0, self.DM[1] - 1)
+
+        done = False
+        dm_reward = -1 # One step more
+        adv_reward = 0
+
+        # Check if DM is @ targets, then finish
+
+        if np.all(self.DM == self.targets[0,:]):
+            if ac_Adv == 0:
+                dm_reward += 50
+                adv_reward -= 50
+            else:
+                dm_reward -= 50
+                adv_reward += 50
+            done = True
+
+        if np.all(self.DM == self.targets[1,:]):
+            if ac_Adv == 1:
+                dm_reward += 50
+                adv_reward -= 50
+            else:
+                dm_reward -= 50
+                adv_reward += 50
+            done = True
+
+
+        # Check if step limit, then finish
+
+        if self.step_count == self.max_steps:
+            done = True
+
+        
+
+        #dm_reward = self.payout if ac0 == ac1 else -self.payout
+
+        #rewards = [dm_reward, -dm_reward] #Assuming zero-sum...
+        #observations = None
+
+        #done = (self.step_count == self.max_steps)
+
+        return self._coord2int(self.DM), (dm_reward, adv_reward), done
