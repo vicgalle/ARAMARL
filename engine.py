@@ -222,3 +222,92 @@ class AdvRwGridworld():
         #done = (self.step_count == self.max_steps)
 
         return self._coord2int(self.DM), (dm_reward, adv_reward), done
+
+
+class Blotto():
+    """
+    Blotto game with multiple adversaries
+    """
+
+    def __init__(self, max_steps, payout=50, batch_size=1, deterministic=True):
+        self.max_steps = max_steps
+        self.batch_size = batch_size
+        #self.payout = payout
+        self.available_actions = np.array([0,1])
+        self.step_count = 0
+        self.deterministic = deterministic
+
+    def reset(self):
+        self.step_count = 0
+        return
+
+    def step(self, actions):
+        """ action[0] is that of the defender """
+        self.step_count += 1
+
+        num_attackers = len(actions) - 1
+
+        actions = np.asarray(actions)
+
+        att_rew = np.sum(actions[1:,], axis=0)
+        tmp = actions[0,] - att_rew
+
+        draw_pos = tmp == 0
+        if self.deterministic != True:
+            tmp[tmp == 0] = np.random.choice([-1, 1], size=len(tmp[tmp == 0]))*(actions[0, draw_pos] > 0)
+        else:
+            tmp[tmp == 0] = 0
+
+        ind = np.sum(actions, axis=0) > 0
+
+        tmp = tmp*ind
+
+        
+        tmp[tmp < 0] = -1
+        tmp[tmp > 0] = 1
+
+        print('tmp', tmp)
+
+        reward_dm = tmp.sum()
+
+        
+        tmp2 = actions[1:,] - actions[0,]
+        tmp2[tmp2 > 0] = 1
+        tmp2[tmp2 < 0] = -1
+
+        print('tmp2', tmp2)
+
+        s = np.sum(actions[1:, draw_pos], axis=0)
+        z = draw_pos & actions[1:,]
+
+        z_new = z/z.sum(axis=0)
+        z_new = np.nan_to_num(z_new)
+        z_new = z_new*ind
+
+        print('z_new', z_new)
+
+        #z_new = np.zeros_like(z_new)
+        z_new[:, draw_pos] = z_new[:, draw_pos]*np.sign(-tmp[draw_pos])
+
+        tmp2[z == 1.] = 0
+
+        print('tmp2', tmp2)
+
+        z_new = tmp2 + z_new
+
+        print('z-new', z_new)
+        print('tmp2', tmp2)
+      
+
+        rewards_atts = np.sum(z_new*(actions[1:, ]>0), axis=1)
+
+        rewards = [reward_dm]
+
+        for r in rewards_atts:
+            rewards.append(r)
+
+        observations = None
+
+        done = (self.step_count == self.max_steps)
+
+        return observations, rewards, done
