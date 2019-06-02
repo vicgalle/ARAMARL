@@ -212,7 +212,7 @@ class AdvRwGridworld():
         if self.step_count == self.max_steps:
             done = True
 
-        
+
 
         #dm_reward = self.payout if ac0 == ac1 else -self.payout
 
@@ -262,20 +262,20 @@ class Blotto():
 
         tmp = tmp*ind
 
-        
+
         tmp[tmp < 0] = -1
         tmp[tmp > 0] = 1
 
-        print('tmp', tmp)
+        # print('tmp', tmp)
 
         reward_dm = tmp.sum()
 
-        
+
         tmp2 = actions[1:,] - actions[0,]
         tmp2[tmp2 > 0] = 1
         tmp2[tmp2 < 0] = -1
 
-        print('tmp2', tmp2)
+        # print('tmp2', tmp2)
 
         s = np.sum(actions[1:, draw_pos], axis=0)
         z = draw_pos & actions[1:,]
@@ -284,20 +284,20 @@ class Blotto():
         z_new = np.nan_to_num(z_new)
         z_new = z_new*ind
 
-        print('z_new', z_new)
+        # print('z_new', z_new)
 
         #z_new = np.zeros_like(z_new)
         z_new[:, draw_pos] = z_new[:, draw_pos]*np.sign(-tmp[draw_pos])
 
         tmp2[z == 1.] = 0
 
-        print('tmp2', tmp2)
+        # print('tmp2', tmp2)
 
         z_new = tmp2 + z_new
 
-        print('z-new', z_new)
-        print('tmp2', tmp2)
-      
+        # print('z-new', z_new)
+        # print('tmp2', tmp2)
+
 
         rewards_atts = np.sum(z_new*(actions[1:, ]>0), axis=1)
 
@@ -340,7 +340,7 @@ class Urban():
 
         self.n_sites = 3
 
-                            
+
 
     def reset(self):
         self.step_count = 0
@@ -364,7 +364,7 @@ class Urban():
                 if u <= p:
                     self.state[i + 1] = 1 # success
 
-            
+
             rewards = [0., 0.]   # no rewards until end of episode
             observations = self.state
 
