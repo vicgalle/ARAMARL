@@ -311,3 +311,78 @@ class Blotto():
         done = (self.step_count == self.max_steps)
 
         return observations, rewards, done
+
+class Urban():
+    """
+    A two-agent environment for a urban resource allocation problem.
+    """
+    def __init__(self):
+        # The state is designated by s = (s_0, s_1, s_2, s_3)
+        # s_0 represents wheter we are in the initial state or not
+        # s_i, i>0 represent whether the attack was successful on the site i.
+        self.state = np.array([1, 0, 0, 0])
+        self.step_count = 0
+        self.max_steps = 2  # as in the ARA for Urban alloc. paper
+        self.payoffs = np.array([1., 0.75, 2.]) # v_i from the paper
+
+        # Transition dynamics
+
+        # p(s_1_i = 1 | d1_i, a_i)  for site i
+        self.p_s1_d1_a = np.array([ [0, 0.85, 0.95],
+                                    [0, 0.6, 0.75],
+                                    [0, 0.3, 0.5 ],
+                                    [0, 0.05, 0.1],
+                                    [0, 0,  0.05 ]  ])
+
+        # p(s_2_i = 1 | s_1_i, d2_i) for site i
+        self.p_s2_s1_d2 = np.array( [[0, 0, 0, 0],
+                                     [0.95, 0.8, 0.6, 0.4]  ])
+
+        self.n_sites = 3
+
+                            
+
+    def reset(self):
+        self.step_count = 0
+        self.state = np.array([1, 0, 0, 0])
+        return
+
+    def step(self, action):
+
+        # first action is that from the DM
+        ac0, ac1 = action
+
+        self.step_count += 1
+
+        if self.step_count == 1:
+
+
+            self.state = np.array([0, 0, 0, 0])
+            for i in range(self.n_sites):
+                p = self.p_s1_d1_a[ac0[i], ac1[i]]
+                u = np.random.rand()
+                if u <= p:
+                    self.state[i + 1] = 1 # success
+
+            
+            rewards = [0., 0.]   # no rewards until end of episode
+            observations = self.state
+
+            done = False
+
+            return observations, rewards, done
+
+        elif self.step_count == 2:  # end of episode
+
+            for i in range(self.n_sites):
+                p = self.p_s2_s1_d2[self.state[i+1], ac0[i]]
+                u = np.random.rand()
+                if u <= p:
+                    self.state[i + 1] = 1 # success
+
+
+            done = True
+            observations = self.state
+            rewards = [ self.payoffs * self.state[1:], None ]  # what to do with the Adversary!?
+
+            return observations, rewards, done
