@@ -339,6 +339,10 @@ class Urban():
                                      [0.95, 0.8, 0.6, 0.4]  ])
 
         self.n_sites = 3
+        self.k = 0.005
+        self.rho = 0.1
+        self.c_A = 10
+        self.c_D = 10
 
 
 
@@ -383,6 +387,7 @@ class Urban():
 
             done = True
             observations = self.state
-            rewards = [ self.payoffs * self.state[1:], None ]  # what to do with the Adversary!?
+            rewards = [ - np.exp( self.c_D * self.rho * np.sum( self.payoffs * self.state[1:] ),
+             np.exp(self.c_A * np.sum(self.payoffs * self.state[1:] - ac1 * self.k) ]  # what to do with the Adversary!?
 
             return observations, rewards, done
