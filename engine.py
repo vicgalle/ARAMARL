@@ -102,12 +102,13 @@ class AdvRw():
                         + (1.0-self._learning_rate) * self._policy)
         self._policy /= np.sum(self._policy)
 
-        #print('---')
+        # print('---')
         #print('r', reward)
         #print('p', self._policy)
-        #print('---')
+        # print('---')
 
         return None, (reward, -reward), True, None
+
 
 class AdvRw2():
     """
@@ -118,7 +119,7 @@ class AdvRw2():
         self.max_steps = max_steps
         self.batch_size = batch_size
         self.payout = payout
-        self.available_actions = np.array([0,1])
+        self.available_actions = np.array([0, 1])
         self.step_count = 0
 
     def reset(self):
@@ -132,13 +133,14 @@ class AdvRw2():
 
         dm_reward = self.payout if ac0 == ac1 else -self.payout
 
-        rewards = [dm_reward, -dm_reward] #Assuming zero-sum...
+        rewards = [dm_reward, -dm_reward]  # Assuming zero-sum...
         observations = None
 
         done = (self.step_count == self.max_steps)
 
         return observations, rewards, done
 #
+
 
 class AdvRwGridworld():
     """
@@ -150,19 +152,19 @@ class AdvRwGridworld():
         self.W = 3
         self.world = np.array([self.H, self.W])  # The gridworld
 
-        self.targets = np.array([[0,0], [0,2]])  # Position of the targets
-        self.DM = np.array([3,1])  # Initial position of the DM
-
+        self.targets = np.array([[0, 0], [0, 2]])  # Position of the targets
+        self.DM = np.array([3, 1])  # Initial position of the DM
 
         self.max_steps = max_steps
         self.batch_size = batch_size
-        self.available_actions_DM = np.array([0,1,2,3])  # Up, right, down,left
-        self.available_actions_Adv = np.array([0,1])  # Select target 1 or 2.
+        self.available_actions_DM = np.array(
+            [0, 1, 2, 3])  # Up, right, down,left
+        self.available_actions_Adv = np.array([0, 1])  # Select target 1 or 2.
         self.step_count = 0
 
     def reset(self):
         self.step_count = 0
-        self.DM = np.array([3,1])
+        self.DM = np.array([3, 1])
         return
 
     def _coord2int(self, pos):
@@ -173,22 +175,22 @@ class AdvRwGridworld():
 
         self.step_count += 1
 
-        if ac_DM == 0: # Up
+        if ac_DM == 0:  # Up
             self.DM[0] = np.maximum(0, self.DM[0] - 1)
-        elif ac_DM == 1: # Right
+        elif ac_DM == 1:  # Right
             self.DM[1] = np.minimum(self.W - 1, self.DM[1] + 1)
-        elif ac_DM == 2: # Down
+        elif ac_DM == 2:  # Down
             self.DM[0] = np.minimum(self.H - 1, self.DM[0] + 1)
-        elif ac_DM == 3: # Left
+        elif ac_DM == 3:  # Left
             self.DM[1] = np.maximum(0, self.DM[1] - 1)
 
         done = False
-        dm_reward = -1 # One step more
+        dm_reward = -1  # One step more
         adv_reward = 0
 
         # Check if DM is @ targets, then finish
 
-        if np.all(self.DM == self.targets[0,:]):
+        if np.all(self.DM == self.targets[0, :]):
             if ac_Adv == 0:
                 dm_reward += 50
                 adv_reward -= 50
@@ -197,7 +199,7 @@ class AdvRwGridworld():
                 adv_reward += 50
             done = True
 
-        if np.all(self.DM == self.targets[1,:]):
+        if np.all(self.DM == self.targets[1, :]):
             if ac_Adv == 1:
                 dm_reward += 50
                 adv_reward -= 50
@@ -206,17 +208,14 @@ class AdvRwGridworld():
                 adv_reward += 50
             done = True
 
-
         # Check if step limit, then finish
 
         if self.step_count == self.max_steps:
             done = True
 
-
-
         #dm_reward = self.payout if ac0 == ac1 else -self.payout
 
-        #rewards = [dm_reward, -dm_reward] #Assuming zero-sum...
+        # rewards = [dm_reward, -dm_reward] #Assuming zero-sum...
         #observations = None
 
         #done = (self.step_count == self.max_steps)
@@ -233,7 +232,7 @@ class Blotto():
         self.max_steps = max_steps
         self.batch_size = batch_size
         #self.payout = payout
-        self.available_actions = np.array([0,1])
+        self.available_actions = np.array([0, 1])
         self.step_count = 0
         self.deterministic = deterministic
 
@@ -249,19 +248,19 @@ class Blotto():
 
         actions = np.asarray(actions)
 
-        att_rew = np.sum(actions[1:,], axis=0)
-        tmp = actions[0,] - att_rew
+        att_rew = np.sum(actions[1:, ], axis=0)
+        tmp = actions[0, ] - att_rew
 
         draw_pos = tmp == 0
         if self.deterministic != True:
-            tmp[tmp == 0] = np.random.choice([-1, 1], size=len(tmp[tmp == 0]))*(actions[0, draw_pos] > 0)
+            tmp[tmp == 0] = np.random.choice(
+                [-1, 1], size=len(tmp[tmp == 0]))*(actions[0, draw_pos] > 0)
         else:
             tmp[tmp == 0] = 0
 
         ind = np.sum(actions, axis=0) > 0
 
         tmp = tmp*ind
-
 
         tmp[tmp < 0] = -1
         tmp[tmp > 0] = 1
@@ -270,15 +269,14 @@ class Blotto():
 
         reward_dm = tmp.sum()
 
-
-        tmp2 = actions[1:,] - actions[0,]
+        tmp2 = actions[1:, ] - actions[0, ]
         tmp2[tmp2 > 0] = 1
         tmp2[tmp2 < 0] = -1
 
         # print('tmp2', tmp2)
 
         s = np.sum(actions[1:, draw_pos], axis=0)
-        z = draw_pos & actions[1:,]
+        z = draw_pos & actions[1:, ]
 
         z_new = z/z.sum(axis=0)
         z_new = np.nan_to_num(z_new)
@@ -298,8 +296,7 @@ class Blotto():
         # print('z-new', z_new)
         # print('tmp2', tmp2)
 
-
-        rewards_atts = np.sum(z_new*(actions[1:, ]>0), axis=1)
+        rewards_atts = np.sum(z_new*(actions[1:, ] > 0), axis=1)
 
         rewards = [reward_dm]
 
@@ -312,10 +309,12 @@ class Blotto():
 
         return observations, rewards, done
 
+
 class Urban():
     """
     A two-agent environment for a urban resource allocation problem.
     """
+
     def __init__(self):
         # The state is designated by s = (s_0, s_1, s_2, s_3)
         # s_0 represents wheter we are in the initial state or not
@@ -323,20 +322,20 @@ class Urban():
         self.state = np.array([1, 0, 0, 0])
         self.step_count = 0
         self.max_steps = 2  # as in the ARA for Urban alloc. paper
-        self.payoffs = np.array([1., 0.75, 2.]) # v_i from the paper
+        self.payoffs = np.array([1., 0.75, 2.])  # v_i from the paper
 
         # Transition dynamics
 
         # p(s_1_i = 1 | d1_i, a_i)  for site i
-        self.p_s1_d1_a = np.array([ [0, 0.85, 0.95],
-                                    [0, 0.6, 0.75],
-                                    [0, 0.3, 0.5 ],
-                                    [0, 0.05, 0.1],
-                                    [0, 0,  0.05 ]  ])
+        self.p_s1_d1_a = np.array([[0, 0.85, 0.95],
+                                   [0, 0.6, 0.75],
+                                   [0, 0.3, 0.5],
+                                   [0, 0.05, 0.1],
+                                   [0, 0,  0.05]])
 
         # p(s_2_i = 1 | s_1_i, d2_i) for site i
-        self.p_s2_s1_d2 = np.array( [[0, 0, 0, 0],
-                                     [0.95, 0.8, 0.6, 0.4]  ])
+        self.p_s2_s1_d2 = np.array([[0, 0, 0, 0],
+                                    [0.95, 0.8, 0.6, 0.4]])
 
         self.n_sites = 3
         self.k = 0.005
@@ -344,7 +343,40 @@ class Urban():
         self.c_A = 10
         self.c_D = 10
 
+    def state2idx(self, state):
+        """
+        In [19]: state = np.array([1, 0, 0, 1])
+        In [20]: state2idx(state)
+        Out[20]: 9
+        """
+        pows = np.array([1 << i for i in range(len(state))[::-1]])
+        return np.dot(pows, state)
 
+    def idx2state(self, idx):
+        """
+        In [28]: idx = 9
+        In [30]: idx2state(idx)
+        Out[30]: array([1, 0, 0, 1])
+        """
+        return (idx & (1 << np.arange(len(self.state))) > 0).astype(int)
+
+    def actionDM2idx(self, a):
+        """ Now we have 3 sites, in which we can defend with up to 5 units. """
+        pows = np.array([5**i for i in range(self.n_sites)[::-1]])
+        return np.dot(pows, a)
+
+    def idx2actionDM(self, idx):
+        return list(map(int, (list(np.base_repr(idx, 5, padding=3))[-self.n_sites:])))
+
+    def valid_actionDM(self, state, action, prev_action):
+        if state[0] == 1: #initial state
+            return np.sum(action) == 4
+        else:  # second move
+            c1 = np.sum(action) == 4
+            c2 = action[0] <= prev_action[0] + prev_action[1]
+            c3 = action[1] <= prev_action[0] + prev_action[1] + prev_action[2]
+            c4 = action[2] <= prev_action[1] + prev_action[2]
+            return c1 & c2 & c3 & c4
 
     def reset(self):
         self.step_count = 0
@@ -360,14 +392,12 @@ class Urban():
 
         if self.step_count == 1:
 
-
             self.state = np.array([0, 0, 0, 0])
             for i in range(self.n_sites):
                 p = self.p_s1_d1_a[ac0[i], ac1[i]]
                 u = np.random.rand()
                 if u <= p:
-                    self.state[i + 1] = 1 # success
-
+                    self.state[i + 1] = 1  # success
 
             rewards = [0., 0.]   # no rewards until end of episode
             observations = self.state
@@ -382,12 +412,11 @@ class Urban():
                 p = self.p_s2_s1_d2[self.state[i+1], ac0[i]]
                 u = np.random.rand()
                 if u <= p:
-                    self.state[i + 1] = 1 # success
-
+                    self.state[i + 1] = 1  # success
 
             done = True
             observations = self.state
-            rewards = [ - np.exp( self.c_D * self.rho * np.sum( self.payoffs * self.state[1:] ) ),
-             np.exp( self.c_A * np.sum(self.payoffs * self.state[1:] - ac1 * self.k) ) ]  # what to do with the Adversary!?
+            rewards = [- np.exp(self.c_D * self.rho * np.sum(self.payoffs * self.state[1:])),
+                       np.exp(self.c_A * np.sum(self.payoffs * self.state[1:] - ac1 * self.k))]  # what to do with the Adversary!?
 
             return observations, rewards, done
