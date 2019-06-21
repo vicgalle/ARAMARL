@@ -61,6 +61,21 @@ class RandomAgent(Agent):
 
     " This agent is so simple it doesn't even need to implement the update method! "
 
+class RandomAgent(Agent):
+    """
+    An agent that chooses actions at random
+    """
+
+    def __init__(self, action_space, policy):
+        Agent.__init__(self, action_space)
+        self.policy = policy
+
+    def act(self, obs=None):
+
+        action_idx = choice(range(len(self.action_space)), p = self.policy)
+        return self.action_space[action_idx]
+
+    " This agent is so simple it doesn't even need to implement the update method! "
 
 class IndQLearningAgent(Agent):
     """

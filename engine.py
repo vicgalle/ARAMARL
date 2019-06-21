@@ -255,15 +255,14 @@ class Blotto():
         if self.deterministic != True:
             tmp[tmp == 0] = np.random.choice(
                 [-1, 1], size=len(tmp[tmp == 0]))*(actions[0, draw_pos] > 0)
-        else:
-            tmp[tmp == 0] = 0
 
-        ind = np.sum(actions, axis=0) > 0
+
+        ind = np.sum(actions, axis=0) > 0 ## to see in which position there was at least one resource
 
         tmp = tmp*ind
 
-        tmp[tmp < 0] = -1
-        tmp[tmp > 0] = 1
+        tmp[tmp < 0] = -1 # Defender looses corresponding position
+        tmp[tmp > 0] = 1  # Defender wins corresponding position
 
         # print('tmp', tmp)
 
@@ -275,7 +274,7 @@ class Blotto():
 
         # print('tmp2', tmp2)
 
-        s = np.sum(actions[1:, draw_pos], axis=0)
+        # s = np.sum(actions[1:, draw_pos], axis=0)
         z = draw_pos & actions[1:, ]
 
         z_new = z/z.sum(axis=0)
@@ -297,6 +296,65 @@ class Blotto():
         # print('tmp2', tmp2)
 
         rewards_atts = np.sum(z_new*(actions[1:, ] > 0), axis=1)
+
+        rewards = [reward_dm]
+
+        for r in rewards_atts:
+            rewards.append(r)
+
+        observations = None
+
+        done = (self.step_count == self.max_steps)
+
+        return observations, rewards, done
+
+
+class modified_Blotto():
+    """
+    Modified Blotto game with multiple adversaries (we just care about positions
+    where there has been some attack)
+    """
+
+    def __init__(self, max_steps, payout=50, batch_size=1, deterministic=True):
+        self.max_steps = max_steps
+        self.batch_size = batch_size
+        #self.payout = payout
+        self.available_actions = np.array([0, 1])
+        self.step_count = 0
+        self.deterministic = deterministic
+
+    def reset(self):
+        self.step_count = 0
+        return
+
+    def step(self, actions):
+        """ action[0] is that of the defender """
+        self.step_count += 1
+
+        actions = np.asarray(actions)
+
+        ## Defender's Reward
+        att_rew = np.sum(actions[1:, ], axis=0)
+        attacked_pos = att_rew > 0 ## indicates in which position attacks where performed
+
+        tmp = actions[0, ] - att_rew
+        tmp[np.logical_not(attacked_pos)] = 0.0
+
+        # Code non-deterministic case ??
+
+        tmp[tmp < 0] = -1 # Defender looses corresponding position
+        tmp[tmp > 0] = 1  # Defender wins corresponding position
+        reward_dm = tmp.sum()
+
+        ## Attacker's Reward
+        tmp_att = -tmp
+
+        h = actions[1:] > 0
+        units = tmp_att / np.sum(h, axis=0)
+        units = np.nan_to_num(units)
+
+        rewards_att = h*units
+        rewards_atts = np.sum(rewards_att, axis=1)
 
         rewards = [reward_dm]
 
