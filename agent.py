@@ -94,6 +94,18 @@ class IndQLearningAgent(Agent):
         r0, _ = rewards
 
         self.Q[obs, a0] = (1 - self.alpha)*self.Q[obs, a0] + self.alpha*(r0 + self.gamma*np.max(self.Q[new_obs, :]))
+        
+class IndQLearningAgentSoftmax(IndQLearningAgent):
+    
+    def __init__(self, action_space, n_states, learning_rate, epsilon, gamma, enemy_action_space=None):
+        IndQLearningAgent.__init__(self, action_space, n_states, learning_rate, epsilon, gamma, enemy_action_space)
+        
+    def act(self, obs=None):
+        p = np.exp(self.Q[obs,:])
+        p = p / np.sum(p)
+        return choice(self.action_space, p=p)
+    
+    
 
 class Exp3QLearningAgent(Agent):
     """
@@ -463,6 +475,23 @@ class Level2QAgent(Agent):
 
         # Finally we update the supported agent's Q-function
         self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
+        
+        
+class Level2QAgentSoftmax(Level2QAgent):
+    """
+    A Q-learning agent that treats the other player as a level 1 agent.
+    She learns from other's actions, estimating their Q function.
+    She represents Q-values in a tabular fashion, i.e., using a matrix Q.
+    """
+
+    def __init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma):
+        Level2QAgent.__init__(self, action_space, enemy_action_space, n_states, learning_rate, epsilon, gamma)
+        
+    def act(self, obs=None):
+        b = self.enemy.act(obs)
+        p = np.exp(self.QA[obs,:,b])
+        p = p / np.sum(p)
+        return choice(self.action_space, p=p)
 
 
 ##
