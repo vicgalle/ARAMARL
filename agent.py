@@ -250,6 +250,10 @@ class FPLearningAgent(Agent):
         if np.random.rand() < self.epsilon:
             return choice(self.action_space)
         else:
+            #print('obs ', obs)
+            #print(self.Q[obs].shape)
+            #print(self.Dir.shape)
+            #print(np.dot( self.Q[obs], self.Dir/np.sum(self.Dir) ).shape)
             return self.action_space[ np.argmax( np.dot( self.Q[obs], self.Dir/np.sum(self.Dir) ) ) ]
 
     def update(self, obs, actions, rewards, new_obs):
@@ -440,7 +444,10 @@ class Level2QAgent(Agent):
         if np.random.rand() < self.epsilonA:
             return choice(self.action_space)
         else:
-            b = self.enemy.act()
+            b = self.enemy.act(obs)
+            #print(self.QA.shape)
+            #print('b', b)
+            #print(self.QA[obs, :, b ])
             # Add epsilon-greedyness
             return self.action_space[ np.argmax( self.QA[obs, :, b ] ) ]
 
@@ -452,7 +459,7 @@ class Level2QAgent(Agent):
         self.enemy.update(obs, [b,a], [rB, rA], new_obs )
 
         # We obtain opponent's next action using Q_B
-        bb = self.enemy.act()
+        bb = self.enemy.act(obs)
 
         # Finally we update the supported agent's Q-function
         self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
@@ -495,7 +502,7 @@ class Level3QAgent(Agent):
         if np.random.rand() < self.epsilonA:
             return choice(self.action_space)
         else:
-            b = self.enemy.act()
+            b = self.enemy.act(obs)
             # Add epsilon-greedyness
             return self.action_space[ np.argmax( self.QA[obs, :, b ] ) ]
 
@@ -507,7 +514,7 @@ class Level3QAgent(Agent):
         self.enemy.update(obs, [b,a], [rB, rA], new_obs )
 
         # We obtain opponent's next action using Q_B
-        bb = self.enemy.act()
+        bb = self.enemy.act(obs)
 
         # Finally we update the supported agent's Q-function
         self.QA[obs, a, b] = (1 - self.alphaA)*self.QA[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA[new_obs, :, bb]))
@@ -560,8 +567,8 @@ class Level3QAgentMixExp(Agent):
         if np.random.rand() < self.epsilonA:
             return choice(self.action_space)
         else:
-            self.E1_action = self.enemy.act()
-            self.E2_action = self.enemy2.act()
+            self.E1_action = self.enemy.act(obs)
+            self.E2_action = self.enemy2.act(obs)
             # Add epsilon-greedyness
         res1 = self.action_space[ np.argmax( self.QA1[obs, :, self.E1_action ] ) ]
         res2 = self.action_space[ np.argmax( self.QA2[obs, :, self.E2_action ] ) ]
@@ -587,8 +594,8 @@ class Level3QAgentMixExp(Agent):
         self.enemy2.update( obs, [b,a], [rB, rA], new_obs )
 
         # We obtain opponent's next action using Q_B
-        bb = self.enemy.act()
-        bb2 = self.enemy2.act()
+        bb = self.enemy.act(obs)
+        bb2 = self.enemy2.act(obs)
 
         # Finally we update the supported agent's Q-function
         self.QA1[obs, a, b] = (1 - self.alphaA)*self.QA1[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA1[new_obs, :, bb]))
@@ -643,8 +650,8 @@ class Level3QAgentMixDir(Agent):
         if np.random.rand() < self.epsilonA:
             return choice(self.action_space)
         else:
-            self.E1_action = self.enemy1.act()
-            self.E2_action = self.enemy2.act()
+            self.E1_action = self.enemy1.act(obs)
+            self.E2_action = self.enemy2.act(obs)
             # Add epsilon-greedyness
         res1 = self.action_space[ np.argmax( self.QA1[obs, :, self.E1_action ] ) ]
         res2 = self.action_space[ np.argmax( self.QA2[obs, :, self.E2_action ] ) ]
@@ -670,8 +677,8 @@ class Level3QAgentMixDir(Agent):
         self.enemy2.update( obs, [b,a], [rB, rA], new_obs )
 
         # We obtain opponent's next action using Q_B
-        bb = self.enemy1.act()
-        bb2 = self.enemy2.act()
+        bb = self.enemy1.act(obs)
+        bb2 = self.enemy2.act(obs)
 
         # Finally we update the supported agent's Q-function
         self.QA1[obs, a, b] = (1 - self.alphaA)*self.QA1[obs, a, b] + self.alphaA*(rA + self.gammaA*np.max(self.QA1[new_obs, :, bb]))
