@@ -392,14 +392,17 @@ class Urban():
                                    [0, 0,  0.05]])
 
         # p(s_2_i = 1 | s_1_i, d2_i) for site i
-        self.p_s2_s1_d2 = np.array([[0, 0, 0, 0],
-                                    [0.95, 0.8, 0.6, 0.4]])
+        self.p_s2_s1_d2 = np.array([[0, 0, 0, 0, 0],
+                                    [1., 0.95, 0.8, 0.6, 0.4]])
 
         self.n_sites = 3
         self.k = 0.005
         self.rho = 0.1
-        self.c_A = 10
-        self.c_D = 10
+        self.c_A = 10.
+        self.c_D = 10.
+
+        self.available_actions_DM = [i for i in range(5**self.n_sites)]   # up to four units in each site
+        self.n_states = 2 ** (self.n_sites + 1)
 
     def state2idx(self, state):
         """
@@ -474,7 +477,8 @@ class Urban():
 
             done = True
             observations = self.state
-            rewards = [- np.exp(self.c_D * self.rho * np.sum(self.payoffs * self.state[1:])),
-                       np.exp(self.c_A * np.sum(self.payoffs * self.state[1:] - ac1 * self.k))]  # what to do with the Adversary!?
+            #print(np.dot(self.payoffs, self.state[1:]))
+            rewards = [- np.exp(self.c_D * self.rho * np.dot(self.payoffs, self.state[1:])),
+                       np.exp(self.c_A * np.dot(self.payoffs,self.state[1:])  - np.sum(ac1 * self.k))]  
 
             return observations, rewards, done
