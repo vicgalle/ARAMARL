@@ -429,10 +429,17 @@ class Urban():
     def idx2actionDM(self, idx):
         return list(map(int, (list(np.base_repr(idx, 5, padding=3))[-self.n_sites:])))
 
-    def valid_actionDM(self, state, action, prev_action):
+    def valid_actionDM(self, state_idx, action_idx, prev_action_idx):
+
+        action = self.idx2actionDM(action_idx)
+        prev_action = self.idx2actionDM(prev_action_idx)
+        state = self.idx2state(state_idx)
+
         if state[0] == 1: #initial state
+            #print('a', action)
             return np.sum(action) == 4
         else:  # second move
+            #print('b', action, prev_action)
             c1 = np.sum(action) == 4
             c2 = action[0] <= prev_action[0] + prev_action[1]
             c3 = action[1] <= prev_action[0] + prev_action[1] + prev_action[2]

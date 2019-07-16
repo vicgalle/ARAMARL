@@ -79,7 +79,7 @@ class IndQLearningAgent(Agent):
         self.epsilon = epsilon
         self.gamma = gamma
         # This is the Q-function Q(s, a)
-        self.Q = np.zeros([self.n_states, len(self.action_space)])
+        self.Q = -10*np.ones([self.n_states, len(self.action_space)])
 
     def act(self, obs=None):
         """An epsilon-greedy policy"""
