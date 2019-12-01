@@ -489,3 +489,44 @@ class Urban():
                        np.exp(self.c_A * np.dot(self.payoffs,self.state[1:])  - np.sum(ac1 * self.k))]  
 
             return observations, rewards, done
+
+
+class SimpleCoin():
+    """
+    Simple Coin Game from LOLA paper, where state is just the color of the coin.
+    """
+
+    def __init__(self, max_steps, batch_size=1):
+        self.max_steps = max_steps
+        self.batch_size = batch_size
+        self.available_actions = np.array([0, 1])  # 1 pick coin.
+        self.step_count = 0
+        self.state = 0  # initially, coin is red (for first player)
+
+    def reset(self):
+        self.step_count = 0
+        return
+
+    def step(self, action):
+        ac0, ac1 = action
+
+        self.step_count += 1
+
+        rewards = np.asarray([ac0, ac1])  # +1 point if thw agent picks coin.
+        
+        # conflict
+        if ac0 and self.state == 1:
+            rewards[1] -= 2
+        
+        if ac1 and self.state == 0:
+            rewards[0] -= 2
+
+        if np.random.rand() < 0.5:
+            self.state = 0
+        else:
+            self.state = 1
+
+        done = (self.step_count == self.max_steps)
+
+        return self.state, rewards, done
+#

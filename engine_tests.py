@@ -4,7 +4,7 @@ Some tests and usage examples for the engine module
 
 import numpy as np
 
-from engine import RMG, AdvRw
+from engine import RMG, AdvRw, SimpleCoin
 
 # Now we perform some tests
 
@@ -76,6 +76,39 @@ env.step(1)
 env.step(1)
 env.step(1)
 env.step(1)
+
+#############################################################
+print('Simple Coin tests')
+
+max_steps = 1000
+eng = SimpleCoin(max_steps=max_steps)
+eng.reset()
+
+a = (1, 1)
+s, r, d = eng.step(a)
+
+print(r)
+print(s)
+
+s, r, d = eng.step(a)
+print(r)
+print(s)
+
+a = (1, 0)
+s, r, d = eng.step(a)
+print(r)
+
+total_r = np.zeros(2)
+eng.reset()
+for _ in range(max_steps):
+    a = (1, 1)
+    _, r, _ = eng.step(a)
+    total_r += r
+print(total_r)
+
+
+
+
 
 
 
