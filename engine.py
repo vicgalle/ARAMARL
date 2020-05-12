@@ -158,7 +158,7 @@ class AdvRwGridworld():
         self.max_steps = max_steps
         self.batch_size = batch_size
         self.available_actions_DM = np.array(
-            [0, 1, 2, 3])  # Up, right, down,left
+            [0, 1, 2, 3])  # Up, right, down, left
         self.available_actions_Adv = np.array([0, 1])  # Select target 1 or 2.
         self.step_count = 0
 
@@ -530,3 +530,128 @@ class SimpleCoin():
 
         return self.state, rewards, done
 #
+
+class CoinGame():
+    """
+    Coin Game from LOLA paper, played over a NxN grid
+    """
+
+    def __init__(self, max_steps=5, batch_size=1, tabular=True):
+        self.max_steps = max_steps
+        self.batch_size = batch_size
+        self.available_actions = np.array([0, 1, 2, 3])  # four directions to move. Agents pick up coins by moving onto the position where the coin is located
+        self.step_count = 0
+        self.N = 3
+        self.available_actions = np.array(
+            [0, 1])
+        self.available_actions_DM = np.array(
+            [0, 1, 2, 3])
+        self.available_actions_Adv = np.array(
+            [0, 1, 2, 3])
+        #self.state = np.zeros([4, self.N, self.N]) # blue player, red player, blue coin, red coin positions as OHE over grid.
+
+        self.blue_player = [1, 0]
+        self.red_player = [1, 2]
+        if (np.random.rand() < 0.0):
+            self.blue_coin = [0, 1]
+            self.red_coin = [2, 1]
+        else:
+            self.blue_coin = [2, 1]
+            self.red_coin = [0, 1]
+
+        self.tabular = tabular
+
+    def get_state(self):
+        o = np.zeros([4, self.N, self.N])
+        o[0,self.blue_player[0], self.blue_player[1]] = 1
+        o[1,self.red_player[0], self.red_player[1]] = 1
+        o[2,self.blue_coin[0], self.blue_coin[1]] = 1
+        o[3,self.red_coin[0], self.red_coin[1]] = 1
+
+        if self.tabular:
+            p1 =  self.blue_player[0] + self.N*self.blue_player[1]
+            p2 =  self.red_player[0] + self.N*self.red_player[1]
+            p3 =  self.blue_coin[0] + self.N*self.blue_coin[1]
+            p4 =  self.red_coin[0] + self.N*self.red_coin[1]
+            return int(p1 + (self.N)**2 * p2 + ((self.N)**2)**2 * p3 + ((self.N)**2)**3 * p4)
+
+        return o
+
+    def reset(self):
+        self.step_count = 0
+
+        # initial positions
+        self.blue_player = [1, 0]
+        self.red_player = [1, 2]
+
+        if (np.random.rand() < 0.0):
+            self.blue_coin = [0, 1]
+            self.red_coin = [2, 1]
+        else:
+            self.blue_coin = [2, 1]
+            self.red_coin = [0, 1]
+
+        return
+
+    def step(self, action):
+        ac0, ac1 = action
+
+        self.step_count += 1
+
+        reward_blue, reward_red = 0, 0
+
+        # agents move
+        if ac0 == 0: # up
+            self.blue_player[0] = np.maximum(self.blue_player[0] - 1, 0)
+        elif ac0 == 1: # right
+            self.blue_player[1] = np.minimum(self.blue_player[1] + 1, self.N-1)
+        elif ac0 == 2: # down
+            self.blue_player[0] = np.minimum(self.blue_player[0] + 1, self.N-1)
+        else:
+            self.blue_player[1] = np.maximum(self.blue_player[1] - 1, 0)
+
+        if ac1 == 0: # up
+            self.red_player[0] = np.maximum(self.red_player[0] - 1, 0)
+        elif ac1 == 1: # right
+            self.red_player[1] = np.minimum(self.red_player[1] + 1, self.N-1)
+        elif ac1 == 2: # down
+            self.red_player[0] = np.minimum(self.red_player[0] + 1, self.N-1)
+        else:
+            self.red_player[1] = np.maximum(self.red_player[1] - 1, 0)
+
+        # check coins
+        # if either agent picks coin, +1 for him
+        if self.blue_player == self.blue_coin:
+            if self.red_player == self.blue_coin:
+                reward_blue += 0.5
+            else:
+                reward_blue += 1
+            self.blue_coin = [-1, -1]
+
+        if self.red_player == self.red_coin:
+            if self.blue_player == self.red_coin:
+                reward_red += 0.5
+            else:
+                reward_red += 1
+            self.red_coin = [-1, -1]
+
+        if self.blue_player == self.red_coin:
+            if self.red_player == self.red_coin:
+                reward_blue += 0.5
+            else:
+                reward_blue += 1
+            self.red_coin = [-1, -1]
+        
+        if self.red_player == self.blue_coin:
+            if self.blue_player == self.blue_coin:
+                reward_red += 0.5
+            else:
+                reward_red += 1
+            self.blue_coin = [-1, -1]
+            
+        
+        
+        
+        done = self.step_count == self.max_steps
+        
+        return self.get_state(), np.array([reward_blue, reward_red]), done
